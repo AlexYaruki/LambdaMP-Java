@@ -23,12 +23,8 @@ OpenMP 1.0:
         omp_get_in_parallel
         omp_set_dynamic
         omp_get_dynamic
-        omp_set_nested
-        omp_get_nested
 
     Environment Variables
-
         OMP_SCHEDULE
         OMP_NUM_THREADS
         OMP_DYNAMIC
-        OMP_NESTED
