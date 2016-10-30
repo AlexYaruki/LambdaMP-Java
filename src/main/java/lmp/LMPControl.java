@@ -31,7 +31,6 @@ class LMPControl {
 
     public static void removeContextByThread(Thread thread) {
         contexts.remove(thread);
-        System.out.println("Active contexts: " + contexts.size());
     }
 
     public static void mapContext(Thread thread, ParallelContext context) {
