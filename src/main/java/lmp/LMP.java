@@ -29,4 +29,12 @@ public class LMP {
         context.cleanup();
     }
 
+    public static int getThreadCount(){
+        ParallelContext context = LMPControl.getContext();
+        if(context == null){
+            return LMPControl.getThreadCount();
+        } else {
+            return context.getThreadCount();
+        }
+    }
 }
