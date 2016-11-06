@@ -116,6 +116,27 @@ public final class LMP {
         }
     }
 
+    public static int getDefaultThreadCount(){
+        return Control.DEFAULT_THREAD_COUNT;
+    }
+
+    public static int getThreadCount(){
+        ParallelContext context = Control.getContext();
+        if(context == null){
+            return Control.threadCount.get();
+        } else {
+            return context.getThreadCount();
+        }
+    }
+
+    public static void setThreadCount(final int threadCount) {
+        if(threadCount < 1){
+            Control.threadCount.set(Control.DEFAULT_THREAD_COUNT);
+        } else {
+            Control.threadCount.set(threadCount);
+        }
+    }
+
     public static void parallel(Runnable parallelRegion) {
         if (parallelRegion == null) {
             throw new NullPointerException("Provided parallel region is empty (Runnable object is null");
@@ -139,25 +160,8 @@ public final class LMP {
         context.cleanup();
     }
 
-    public static int getDefaultThreadCount(){
-        return Control.DEFAULT_THREAD_COUNT;
-    }
+    public static void single(Runnable singleRegion){
 
-    public static int getThreadCount(){
-        ParallelContext context = Control.getContext();
-        if(context == null){
-            return Control.threadCount.get();
-        } else {
-            return context.getThreadCount();
-        }
-    }
-
-    public static void setThreadCount(final int threadCount) {
-        if(threadCount < 1){
-            Control.threadCount.set(Control.DEFAULT_THREAD_COUNT);
-        } else {
-            Control.threadCount.set(threadCount);
-        }
     }
 
 }
