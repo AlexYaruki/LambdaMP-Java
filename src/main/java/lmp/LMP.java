@@ -37,4 +37,7 @@ public class LMP {
             return context.getThreadCount();
         }
     }
+    public static int getDefaultThreadCount(){
+        return LMPControl.DEFAULT_THREAD_COUNT;
+    }
 }

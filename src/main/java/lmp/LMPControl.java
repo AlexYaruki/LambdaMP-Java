@@ -5,7 +5,7 @@ import java.util.Map;
 
 class LMPControl {
 
-    private static final int DEFAULT_THREAD_COUNT;
+    static final int DEFAULT_THREAD_COUNT;
     private static int threadCount;
     private static Map<Thread,ParallelContext> contexts;
     static {
