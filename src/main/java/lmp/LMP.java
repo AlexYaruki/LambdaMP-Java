@@ -1,11 +1,16 @@
 package lmp;
 
+import com.sun.xml.internal.bind.v2.runtime.unmarshaller.XsiNilLoader;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public final class LMP {
 
@@ -41,11 +46,13 @@ public final class LMP {
         private int threadCount;
         private CountDownLatch startupLatch;
         private Set<Thread> threads;
+        private SingleContext singleContext;
 
         public ParallelContext(int threadCount) {
             this.threadCount = threadCount;
             startupLatch = new CountDownLatch(threadCount);
             threads = new HashSet<>();
+            singleContext = new SingleContext();
         }
 
         public int getThreadCount() {
@@ -79,6 +86,42 @@ public final class LMP {
             }
             threads.clear();
         }
+
+        public SingleContext getSingleContext() {
+            return singleContext;
+        }
+    }
+
+    private static class SingleContext {
+
+        private Lock lock;
+        private boolean done;
+
+        SingleContext() {
+            lock = new ReentrantLock();
+            done = false;
+        }
+
+        public void lock() {
+
+        }
+
+        public void markDone() {
+            done = true;
+        }
+
+        public boolean isDone() {
+            return done;
+        }
+
+        public void sync() {
+
+        }
+
+        private void clear() {
+
+        }
+
     }
 
     private static class ParallelThreadFactory implements ThreadFactory {
@@ -160,8 +203,21 @@ public final class LMP {
         context.cleanup();
     }
 
-    public static void single(Runnable singleRegion){
-
+    public static void single(Runnable singleRegion) {
+        if (singleRegion == null) {
+            throw new NullPointerException("Provided single region is empty (Runnable object is null");
+        }
+        ParallelContext context = Control.getContext();
+        if (context == null) {
+            return;
+        }
+        SingleContext singleContext = context.getSingleContext();
+        singleContext.lock();
+        if (!singleContext.isDone()) {
+            singleRegion.run();
+            singleContext.markDone();
+        }
+        singleContext.sync();
     }
 
 }
