@@ -96,14 +96,20 @@ public final class LMP {
 
         private Lock lock;
         private boolean done;
+        private CountDownLatch latch;
 
         SingleContext() {
             lock = new ReentrantLock();
             done = false;
+            latch = new CountDownLatch(LMP.getThreadCount());
         }
 
         public void lock() {
-
+            lock.lock();
+            if (latch.getCount() == 0) {
+                latch = new CountDownLatch(LMP.getThreadCount());
+                done = false;
+            }
         }
 
         public void markDone() {
@@ -115,11 +121,13 @@ public final class LMP {
         }
 
         public void sync() {
-
-        }
-
-        private void clear() {
-
+            lock.unlock();
+            latch.countDown();
+            try {
+                latch.await();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
 
     }
