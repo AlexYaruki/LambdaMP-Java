@@ -8,6 +8,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.IntConsumer;
 
 public final class LMP {
 
@@ -223,6 +224,30 @@ public final class LMP {
             singleContext.markDone();
         }
         singleContext.sync();
+    }
+
+    public static void loop(int from, int to, int step,IntConsumer loopRegion){
+        throw new UnsupportedOperationException("Not yet implemented");
+    }
+
+    public static void sections(Runnable sectionsRegion){
+        throw new UnsupportedOperationException("Not yet implemented");
+    }
+
+    public static void section(Runnable sectionRegion){
+        throw new UnsupportedOperationException("Not yet implemented");
+    }
+
+    public static void barrier(){
+        throw new UnsupportedOperationException("Not yet implemented");
+    }
+
+    public static void critical(Runnable criticalRegion){
+        throw new UnsupportedOperationException("Not yet implemented");
+    }
+
+    public static boolean inParallel(){
+        throw new UnsupportedOperationException("Not yet implemented");
     }
 
 }
