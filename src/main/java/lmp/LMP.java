@@ -43,14 +43,17 @@ public final class LMP {
 
         private int threadCount;
         private CountDownLatch startupLatch;
+        private CountDownLatch barrierLatch;
         private Set<Thread> threads;
         private SingleContext singleContext;
+        private SectionsContext sectionsContext;
 
         public ParallelContext(int threadCount) {
             this.threadCount = threadCount;
             startupLatch = new CountDownLatch(threadCount);
             threads = new HashSet<>();
             singleContext = new SingleContext();
+            sectionsContext = new SectionsContext();
         }
 
         public int getThreadCount() {
@@ -87,6 +90,17 @@ public final class LMP {
 
         public SingleContext getSingleContext() {
             return singleContext;
+        }
+
+        public SectionsContext getSectionsContext() {
+            return sectionsContext;
+        }
+
+        public synchronized CountDownLatch getBarrierLatch() {
+            if(barrierLatch == null || barrierLatch.getCount() == 0){
+                barrierLatch = new CountDownLatch(threadCount);
+            }
+            return barrierLatch;
         }
     }
 
@@ -128,6 +142,24 @@ public final class LMP {
             }
         }
 
+    }
+
+    private static class SectionsContext {
+
+        public SectionsContext(){
+            sectionsExecuted = new HashSet<>();
+        }
+
+        private Set<Runnable> sectionsExecuted;
+
+        public synchronized boolean checkExecution(Runnable sectionRegion) {
+            if(sectionsExecuted.contains(sectionRegion)){
+                return false;
+            } else {
+                sectionsExecuted.add(sectionRegion);
+                return true;
+            }
+        }
     }
 
     private static class ParallelThreadFactory implements ThreadFactory {
@@ -231,15 +263,31 @@ public final class LMP {
     }
 
     public static void sections(Runnable sectionsRegion){
-        throw new UnsupportedOperationException("Not yet implemented");
+        if(sectionsRegion == null){
+            throw new IllegalArgumentException("Sections region is empty (Runnable is null)");
+        }
+        sectionsRegion.run();
+        LMP.barrier();
     }
 
     public static void section(Runnable sectionRegion){
-        throw new UnsupportedOperationException("Not yet implemented");
+        if(sectionRegion == null){
+            throw new IllegalArgumentException("Section region is empty (Runnable is null)");
+        }
+        SectionsContext context = Control.getContext().getSectionsContext();
+        if(context.checkExecution(sectionRegion)){
+            sectionRegion.run();
+        }
     }
 
     public static void barrier(){
-        throw new UnsupportedOperationException("Not yet implemented");
+        CountDownLatch barrierLatch = Control.getContext().getBarrierLatch();
+        barrierLatch.countDown();
+        try {
+            barrierLatch.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     public static void critical(Runnable criticalRegion){
