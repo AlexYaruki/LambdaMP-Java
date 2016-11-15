@@ -37,6 +37,10 @@ public final class LMP {
         public static ParallelContext getContext() {
             return contexts.get(Thread.currentThread());
         }
+
+        public static ParallelContext getContext(SectionsContext sectionsContext) {
+            return contexts.values().stream().filter((p) -> p.getSectionsContext() == sectionsContext).findFirst().get();
+        }
     }
 
     private static class ParallelContext {
@@ -146,19 +150,33 @@ public final class LMP {
 
     private static class SectionsContext {
 
+        private ThreadLocal<Integer> sectionCounter;
+
+        private Set<Integer> sectionsExecuted;
+
         public SectionsContext(){
             sectionsExecuted = new HashSet<>();
+            sectionCounter = new ThreadLocal<>();
         }
 
-        private Set<Runnable> sectionsExecuted;
-
         public synchronized boolean checkExecution(Runnable sectionRegion) {
-            if(sectionsExecuted.contains(sectionRegion)){
+            int sectionId = getSectionId();
+            if(sectionsExecuted.contains(sectionId)){
                 return false;
             } else {
-                sectionsExecuted.add(sectionRegion);
+                sectionsExecuted.add(sectionId);
                 return true;
             }
+        }
+
+
+        public int getSectionId() {
+            if(sectionCounter.get() == null) {
+                sectionCounter.set(0);
+            }
+            int sectionId = sectionCounter.get();
+            sectionCounter.set(sectionCounter.get() + 1);
+            return sectionId;
         }
     }
 
