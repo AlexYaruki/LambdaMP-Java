@@ -373,7 +373,8 @@ public final class LMP {
     }
 
     public static boolean inParallel(){
-        throw new UnsupportedOperationException("Not yet implemented");
+        ParallelContext context = Control.getContext();
+        return context != null;
     }
 
 }
