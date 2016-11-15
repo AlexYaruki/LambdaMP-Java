@@ -54,6 +54,7 @@ public final class LMP {
         private CountDownLatch barrierLatch;
         private Set<Thread> threads;
         private SingleContext singleContext;
+        private CriticalContext criticalContext;
         private SectionsContext sectionsContext;
 
         public ParallelContext(int threadCount) {
@@ -62,6 +63,7 @@ public final class LMP {
             threads = new HashSet<>();
             singleContext = new SingleContext();
             sectionsContext = new SectionsContext();
+            criticalContext = new CriticalContext();
         }
 
         public int getThreadCount() {
@@ -109,6 +111,11 @@ public final class LMP {
                 barrierLatch = new CountDownLatch(threadCount);
             }
             return barrierLatch;
+        }
+
+
+        public CriticalContext getCriticalContext() {
+            return criticalContext;
         }
     }
 
@@ -184,6 +191,31 @@ public final class LMP {
         }
     }
 
+    private static class CriticalContext {
+
+        private ThreadLocal<Integer> criticalCounter;
+        private Map<Integer,Lock> locks;
+        public CriticalContext() {
+            criticalCounter = new ThreadLocal<>();
+            locks = new ConcurrentHashMap<>();
+        }
+
+
+        public synchronized Lock getCriticalLock(){
+            if(criticalCounter.get() == null) {
+                criticalCounter.set(0);
+            }
+            final int criticalId = criticalCounter.get();
+            criticalCounter.set(criticalId + 1);
+            Lock criticalLock = locks.get(criticalId);
+            if(criticalLock == null){
+                criticalLock = new ReentrantLock();
+                locks.put(criticalId,criticalLock);
+            }
+            return criticalLock;
+        }
+    }
+
     private static class ParallelThreadFactory implements ThreadFactory {
 
         private ParallelContext context;
@@ -222,6 +254,7 @@ public final class LMP {
     private static class LoopRange {
 
         private final int begin;
+        // TODO: Add getter to "current"
         private int current;
         private final int end;
 
@@ -368,8 +401,16 @@ public final class LMP {
         }
     }
 
-    public static void critical(Runnable criticalRegion){
-        throw new UnsupportedOperationException("Not yet implemented");
+    public static void critical(Runnable criticalRegion) {
+        if (criticalRegion == null) {
+            throw new NullPointerException("Critical region is empty (Runnable is null)");
+        }
+        ParallelContext context = Control.getContext();
+        CriticalContext criticalContext = context.getCriticalContext();
+        Lock criticalLock = criticalContext.getCriticalLock();
+        criticalLock.lock();
+        criticalRegion.run();
+        criticalLock.unlock();
     }
 
     public static boolean inParallel(){
