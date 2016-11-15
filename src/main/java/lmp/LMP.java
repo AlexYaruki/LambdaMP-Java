@@ -1,9 +1,6 @@
 package lmp;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
@@ -26,6 +23,8 @@ public final class LMP {
             contexts = new HashMap<>();
         }
 
+        private static int threadId;
+
         public static void removeContextByThread(Thread thread) {
             contexts.remove(thread);
         }
@@ -37,6 +36,11 @@ public final class LMP {
         public static ParallelContext getContext() {
             return contexts.get(Thread.currentThread());
         }
+
+        public static int getThreadId() {
+            return threadId;
+        }
+
 
         public static ParallelContext getContext(SectionsContext sectionsContext) {
             return contexts.values().stream().filter((p) -> p.getSectionsContext() == sectionsContext).findFirst().get();
@@ -215,6 +219,51 @@ public final class LMP {
         }
     }
 
+    private static class LoopRange {
+
+        private final int begin;
+        private int current;
+        private final int end;
+
+        public LoopRange(int from, int to, int tid, int threadCount) {
+            int size = to - from + 1;
+            int[] loopSizes = new int[threadCount];
+            Arrays.fill(loopSizes,size/threadCount);
+            System.out.println("Mod: " + size%threadCount);
+            int mod = size%threadCount;
+            for(int i = 0; i < threadCount && mod > 0; i++, mod--){
+                loopSizes[i]++;
+            }
+            System.out.println(Arrays.toString(loopSizes));
+            for(int i = 1; i < threadCount; i++){
+                loopSizes[i] += loopSizes[i-1];
+            }
+
+            if(tid == 0) {
+                begin = from;
+            } else {
+                begin = from + loopSizes[tid-1];
+            }
+
+            if(tid == threadCount-1) {
+                end = to;
+            } else {
+                end = from + loopSizes[tid] -1;
+            }
+            current = begin;
+        }
+
+        public int getBegin(){
+            return begin;
+        }
+        public int getEnd(){
+            return end;
+        }
+        public void step(){
+            current++;
+        }
+    }
+
     public static int getDefaultThreadCount(){
         return Control.DEFAULT_THREAD_COUNT;
     }
@@ -276,8 +325,19 @@ public final class LMP {
         singleContext.sync();
     }
 
-    public static void loop(int from, int to, int step,IntConsumer loopRegion){
-        throw new UnsupportedOperationException("Not yet implemented");
+    public static void loop(int from, int to, IntConsumer loopRegion) {
+        if(loopRegion  == null) {
+            throw new NullPointerException("Loop region is empty (IntConsumer is null)");
+        }
+        if(from > to){
+            throw new IllegalArgumentException("Loop: from > to");
+        }
+
+        int tid = Control.getThreadId();
+        LoopRange range = new LoopRange(from,to,tid,getThreadCount());
+        for(int i = range.getBegin(); i != range.getEnd()+1; range.step()){
+            loopRegion.accept(i);
+        }
     }
 
     public static void sections(Runnable sectionsRegion){
