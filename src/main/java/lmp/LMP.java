@@ -254,7 +254,6 @@ public final class LMP {
     private static class LoopRange {
 
         private final int begin;
-        // TODO: Add getter to "current"
         private int current;
         private final int end;
 
@@ -289,11 +288,17 @@ public final class LMP {
         public int getBegin(){
             return begin;
         }
+
         public int getEnd(){
             return end;
         }
+
         public void step(){
             current++;
+        }
+
+        public int getCurrent(){
+            return current;
         }
     }
 
@@ -369,7 +374,7 @@ public final class LMP {
         int tid = Control.getThreadId();
         LoopRange range = new LoopRange(from,to,tid,getThreadCount());
         for(int i = range.getBegin(); i != range.getEnd()+1; range.step()){
-            loopRegion.accept(i);
+            loopRegion.accept(range.getCurrent());
         }
     }
 
