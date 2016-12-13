@@ -261,7 +261,6 @@ public final class LMP {
             int size = to - from + 1;
             int[] loopSizes = new int[threadCount];
             Arrays.fill(loopSizes,size/threadCount);
-            System.out.println("Mod: " + size%threadCount);
             int mod = size%threadCount;
             for(int i = 0; i < threadCount && mod > 0; i++, mod--){
                 loopSizes[i]++;
@@ -285,20 +284,16 @@ public final class LMP {
             current = begin;
         }
 
-        public int getBegin(){
-            return begin;
-        }
-
-        public int getEnd(){
-            return end;
-        }
-
         public void step(){
             current++;
         }
 
         public int getCurrent(){
             return current;
+        }
+
+        public boolean hasMoreWork() {
+            return current <= end;
         }
     }
 
@@ -325,7 +320,7 @@ public final class LMP {
 
     public static void parallel(Runnable parallelRegion) {
         if (parallelRegion == null) {
-            throw new NullPointerException("Provided parallel region is empty (Runnable object is null");
+            throw new LMP.NullRegion();
         }
         ParallelContext context = new ParallelContext(Control.threadCount.get());
         ParallelThreadFactory threadFactory = new ParallelThreadFactory(context);
@@ -373,8 +368,9 @@ public final class LMP {
 
         int tid = Control.getThreadId();
         LoopRange range = new LoopRange(from,to,tid,getThreadCount());
-        for(int i = range.getBegin(); i != range.getEnd()+1; range.step()){
+        while(range.hasMoreWork()){
             loopRegion.accept(range.getCurrent());
+            range.step();
         }
     }
 
@@ -423,4 +419,6 @@ public final class LMP {
         return context != null;
     }
 
+    public static class NullRegion extends RuntimeException {
+    }
 }

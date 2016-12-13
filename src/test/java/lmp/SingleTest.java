@@ -1,10 +1,10 @@
 package lmp;
 
 import org.junit.Test;
+import static org.junit.Assert.*;
+
 
 import java.util.concurrent.ConcurrentLinkedDeque;
-
-import static org.junit.Assert.*;
 
 public class SingleTest {
 
