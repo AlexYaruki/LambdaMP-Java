@@ -13,6 +13,13 @@ public final class LMP {
 
     }
 
+    enum Schedule {
+        STATIC,
+        DYNAMIC,
+        GUIDED,
+        RUNTIME
+    }
+
     private static class Control {
         static final int DEFAULT_THREAD_COUNT;
         static final AtomicInteger threadCount;
