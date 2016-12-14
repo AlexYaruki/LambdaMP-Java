@@ -1,10 +1,10 @@
 package lmp;
 
 
+import org.junit.After;
 import org.junit.Test;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -13,9 +13,28 @@ import static org.junit.Assert.assertEquals;
 
 public class ParallelTest {
 
+    /*
+        Thread count is set to default value at the end of each test to simulate unmodified environment
+     */
+    @After
+    public void init(){
+        int defaultThreadCount = LMP.getDefaultThreadCount();
+        LMP.setThreadCount(defaultThreadCount);
+    }
+
     @Test(expected = LMP.NullRegion.class)
     public void nullParallelRegion_throwsException(){
         LMP.parallel(null);
+    }
+
+    @Test
+    public void regionExecutedDefaultAmountOfTimes() {
+        List<Integer> checkValues = Collections.synchronizedList(new ArrayList<>());
+        int defaultThreadCount = LMP.getDefaultThreadCount();
+        LMP.parallel(() -> {
+            checkValues.add(1);
+        });
+        assertEquals(defaultThreadCount,checkValues.size());
     }
 
     @Test
@@ -43,6 +62,21 @@ public class ParallelTest {
 
     }
 
+    @Test
+    public void threadCountChangePreservedBetweenRegions(){
+        List<Integer> checks = Collections.synchronizedList(new ArrayList<>());
+        final int defaultThreadCount = LMP.getDefaultThreadCount();
+        final int changedThreadCount = defaultThreadCount + 1;
+        LMP.setThreadCount(changedThreadCount);
+        LMP.parallel(() -> {
+            checks.add(1);
+        });
+        assertEquals(changedThreadCount,checks.size());
+        LMP.parallel(() -> {
+            checks.add(1);
+        });
+        assertEquals(changedThreadCount*2,checks.size());
+    }
 
 
     @Test
