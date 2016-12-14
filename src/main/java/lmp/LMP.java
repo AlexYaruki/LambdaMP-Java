@@ -411,9 +411,12 @@ public final class LMP {
 
     public static void critical(Runnable criticalRegion) {
         if (criticalRegion == null) {
-            throw new NullPointerException("Critical region is empty (Runnable is null)");
+            throw new LMP.NullRegion();
         }
         ParallelContext context = Control.getContext();
+        if(context == null) {
+            throw new LMP.OutsideParallel();
+        }
         CriticalContext criticalContext = context.getCriticalContext();
         Lock criticalLock = criticalContext.getCriticalLock();
         criticalLock.lock();
@@ -428,4 +431,8 @@ public final class LMP {
 
     public static class NullRegion extends RuntimeException {
     }
+
+    public static class OutsideParallel extends RuntimeException {
+    }
+
 }
