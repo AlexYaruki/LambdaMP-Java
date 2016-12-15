@@ -9,6 +9,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 
 public class ParallelTest {
@@ -63,6 +64,19 @@ public class ParallelTest {
     }
 
     @Test
+    public void threadCountChangeVisibleInParallel(){
+        final int threadCount = LMP.getThreadCount();
+        LMP.setThreadCount(threadCount + 1);
+        final int changedThreadCount = LMP.getThreadCount();
+        List<Integer> checks = Collections.synchronizedList(new ArrayList<>());
+        LMP.parallel(() -> {
+            checks.add(LMP.getThreadCount());
+        });
+        assertEquals(changedThreadCount,checks.size());
+        assertTrue(checks.stream().allMatch(val -> val == changedThreadCount));
+    }
+
+    @Test
     public void threadCountChangePreservedBetweenRegions(){
         List<Integer> checks = Collections.synchronizedList(new ArrayList<>());
         final int defaultThreadCount = LMP.getDefaultThreadCount();
@@ -77,7 +91,6 @@ public class ParallelTest {
         });
         assertEquals(changedThreadCount*2,checks.size());
     }
-
 
     @Test
     public void workExecutedBySeparateThreads(){
