@@ -9,6 +9,8 @@ import java.util.function.IntConsumer;
 
 public final class LMP {
 
+    private static ExceptionHandler exceptionHandler;
+
     private LMP(){
 
     }
@@ -28,6 +30,14 @@ public final class LMP {
         }
         final Map<Thread, Integer> threadInteger = context.getThreadRegistry();
         return threadInteger.get(Thread.currentThread());
+    }
+
+    public static void setExceptionHandler(ExceptionHandler exceptionHandler) {
+        LMP.exceptionHandler = exceptionHandler;
+    }
+
+    public static ExceptionHandler getExceptionHandler() {
+        return exceptionHandler;
     }
 
     public enum Schedule {
@@ -79,6 +89,7 @@ public final class LMP {
         private CriticalContext criticalContext;
         private SectionsContext sectionsContext;
         private Map<Thread, Integer> threadRegistry;
+        private CountDownLatch exceptionFinalizedLatch;
 
         public ParallelContext(int threadCount) {
             this.threadCount = threadCount;
@@ -111,9 +122,11 @@ public final class LMP {
             }
         }
 
-        public void addThread(Thread thread){
+        public int addThread(Thread thread){
+            final int threadId = nextThreadId++;
             threads.add(thread);
-            threadRegistry.put(thread,nextThreadId++);
+            threadRegistry.put(thread,threadId);
+            return threadId;
         }
 
         public void cleanup() {
@@ -121,6 +134,13 @@ public final class LMP {
                 Control.removeContextByThread(thread);
             }
             threads.clear();
+            if(exceptionFinalizedLatch != null){
+                try {
+                    exceptionFinalizedLatch.await();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
         }
 
         public SingleContext getSingleContext() {
@@ -145,6 +165,14 @@ public final class LMP {
 
         public Map<Thread,Integer> getThreadRegistry() {
             return threadRegistry;
+        }
+
+        public void setExceptionFinalizedLatch(CountDownLatch exceptionFinalizedLatch) {
+            this.exceptionFinalizedLatch = exceptionFinalizedLatch;
+        }
+
+        public CountDownLatch getExceptionFinalizedLatch() {
+            return exceptionFinalizedLatch;
         }
     }
 
@@ -248,8 +276,9 @@ public final class LMP {
     private static class ParallelThreadFactory implements ThreadFactory {
 
         private ParallelContext context;
+        private CountDownLatch exceptionFinalizedLatch = null;
 
-        public ParallelThreadFactory(ParallelContext context){
+        public ParallelThreadFactory(ParallelContext context) {
             this.context = context;
         }
 
@@ -257,9 +286,22 @@ public final class LMP {
         public Thread newThread(Runnable r) {
             Thread thread = new Thread(r);
             Control.mapContext(thread,context);
-            context.addThread(thread);
+            final int threadId = context.addThread(thread);
+            if(LMP.getExceptionModel() == ExceptionModel.HANDLE){
+                ThreadContextView threadContextView = new ThreadContextView(threadId);
+                ExceptionHandler exceptionHandler = LMP.getExceptionHandler();
+                if(exceptionFinalizedLatch == null) {
+                    exceptionFinalizedLatch = new CountDownLatch(context.getThreadCount());
+                    context.setExceptionFinalizedLatch(exceptionFinalizedLatch);
+                }
+                thread.setUncaughtExceptionHandler((t, ex) -> {
+                    exceptionHandler.handleException(t,threadContextView,ex);
+                    exceptionFinalizedLatch.countDown();
+                });
+            }
             return thread;
         }
+
     }
 
     private static class ParallelRunner implements Runnable {
@@ -277,6 +319,10 @@ public final class LMP {
         public void run() {
             context.liftStartupLatch();
             parallelRegion.run();
+            CountDownLatch latch = context.getExceptionFinalizedLatch();
+            if(latch != null){
+                latch.countDown();
+            }
         }
     }
 
