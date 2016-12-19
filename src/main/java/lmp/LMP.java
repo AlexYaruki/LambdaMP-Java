@@ -49,8 +49,8 @@ public final class LMP {
 
     public enum ExceptionModel {
         DEFAULT,
-        DROP,
-        HANDLE
+        HANDLE,
+        PROPAGATE,
     }
 
     private static class Control {
@@ -89,6 +89,7 @@ public final class LMP {
         private CriticalContext criticalContext;
         private SectionsContext sectionsContext;
         private Map<Thread, Integer> threadRegistry;
+        private Map<Thread,Throwable> exceptionMap;
         private CountDownLatch exceptionFinalizedLatch;
 
         public ParallelContext(int threadCount) {
@@ -99,6 +100,7 @@ public final class LMP {
             sectionsContext = new SectionsContext();
             criticalContext = new CriticalContext();
             threadRegistry = new HashMap<>();
+            exceptionMap = new HashMap<>();
         }
 
         public int getThreadCount() {
@@ -158,7 +160,6 @@ public final class LMP {
             return barrierLatch;
         }
 
-
         public CriticalContext getCriticalContext() {
             return criticalContext;
         }
@@ -173,6 +174,10 @@ public final class LMP {
 
         public CountDownLatch getExceptionFinalizedLatch() {
             return exceptionFinalizedLatch;
+        }
+
+        public void saveException(Thread thread, Throwable e) {
+            exceptionMap.put(thread,e);
         }
     }
 
@@ -318,7 +323,15 @@ public final class LMP {
         @Override
         public void run() {
             context.liftStartupLatch();
-            parallelRegion.run();
+            try {
+                parallelRegion.run();
+            } catch (Throwable e) {
+                if(LMP.getExceptionModel() == ExceptionModel.PROPAGATE) {
+                    context.saveException(Thread.currentThread(), e);
+                } else {
+                    throw e;
+                }
+            }
             CountDownLatch latch = context.getExceptionFinalizedLatch();
             if(latch != null){
                 latch.countDown();
@@ -414,6 +427,15 @@ public final class LMP {
             e.printStackTrace();
         }
         context.cleanup();
+        if(!context.exceptionMap.isEmpty()){
+            if(context.exceptionMap.size() == 1) {
+                Optional<Map.Entry<Thread, Throwable>> first = context.exceptionMap.entrySet().stream().findFirst();
+                Thread thread = first.get().getKey();
+                Throwable throwable = first.get().getValue();
+                throw new ParallelException("Exception thrown by thread \"" + thread.getName() + "\"",first.get().getValue(),thread);
+            }
+
+        }
     }
 
     public static void single(Runnable singleRegion) {
@@ -503,4 +525,25 @@ public final class LMP {
     public static class OutsideParallel extends RuntimeException {
     }
 
+    public static class ParallelException extends RuntimeException {
+        private final Thread exceptionThread;
+
+        public ParallelException(String message, Throwable cause, Thread exceptionThread) {
+            super(message,cause);
+            this.exceptionThread = exceptionThread;
+        }
+
+        public Thread getExceptionThread() {
+            return exceptionThread;
+        }
+    }
+
+    public static class MultiParallelException extends RuntimeException {
+        private Map<Thread,Throwable> causes;
+
+        public MultiParallelException(Map<Thread,Throwable> exceptionMap){
+            causes = new HashMap<>(exceptionMap);
+        }
+
+    }
 }

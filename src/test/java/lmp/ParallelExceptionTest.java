@@ -16,8 +16,8 @@ public class ParallelExceptionTest extends LMPBaseTest{
 
     @Test
     public void shouldSetExceptionModel(){
-        LMP.setExceptionModel(LMP.ExceptionModel.DROP);
-        assertEquals(LMP.ExceptionModel.DROP,LMP.getExceptionModel());
+        LMP.setExceptionModel(LMP.ExceptionModel.HANDLE);
+        assertEquals(LMP.ExceptionModel.HANDLE,LMP.getExceptionModel());
     }
 
     @Test
@@ -53,6 +53,33 @@ public class ParallelExceptionTest extends LMPBaseTest{
             throw new RuntimeException();
         });
         assertFalse(check.get());
+    }
+
+    @Test
+    public void shouldNotUseExceptionHandlerInPropagateMode() {
+        LMP.setThreadCount(1);
+        LMP.setExceptionModel(LMP.ExceptionModel.PROPAGATE);
+        AtomicBoolean check = new AtomicBoolean(false);
+        LMP.setExceptionHandler((Thread thread, ThreadContextView threadContextView, Throwable throwable) -> {
+            check.set(true);
+        });
+        try {
+            LMP.parallel(() -> {
+                throw new RuntimeException();
+            });
+        } catch (Throwable e) {
+
+        }
+        assertFalse(check.get());
+    }
+
+    @Test(expected = LMP.ParallelException.class)
+    public void shouldPropagateExceptionHandlerInPropagateMode() {
+        LMP.setThreadCount(1);
+        LMP.setExceptionModel(LMP.ExceptionModel.PROPAGATE);
+        LMP.parallel(() -> {
+            throw new RuntimeException();
+        });
     }
 
     @Test
