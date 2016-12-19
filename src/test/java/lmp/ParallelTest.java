@@ -24,20 +24,8 @@ public class ParallelTest {
         LMP.setExceptionModel(LMP.getExceptionModel().DEFAULT);
     }
 
-    @Test(expected = LMP.NullRegion.class)
-    public void nullParallelRegion_throwsException(){
-        LMP.parallel(null);
-    }
-
-
     @Test
-    public void shouldSetExceptionModel(){
-        LMP.setExceptionModel(LMP.ExceptionModel.DROP);
-        assertEquals(LMP.ExceptionModel.DROP,LMP.getExceptionModel());
-    }
-
-    @Test
-    public void shoudReturnThreadId(){
+    public void shouldReturnThreadId(){
         int threadCount = LMP.getDefaultThreadCount();
         if(threadCount == 1) {
             threadCount = 2;
