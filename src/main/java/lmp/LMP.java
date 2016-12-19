@@ -13,24 +13,47 @@ public final class LMP {
 
     }
 
-    enum Schedule {
+    public static void setExceptionModel(ExceptionModel exceptionModel) {
+        Control.exceptionModel = exceptionModel;
+    }
+
+    public static ExceptionModel getExceptionModel() {
+        return Control.exceptionModel;
+    }
+
+    public static Integer getThreadId() {
+        final ParallelContext context = Control.getContext();
+        if (context == null) {
+            return 0;
+        }
+        final Map<Thread, Integer> threadInteger = context.getThreadRegistry();
+        return threadInteger.get(Thread.currentThread());
+    }
+
+    public enum Schedule {
         STATIC,
         DYNAMIC,
         GUIDED,
         RUNTIME
     }
 
+    public enum ExceptionModel {
+        DEFAULT,
+        DROP,
+        HANDLE
+    }
+
     private static class Control {
-        static final int DEFAULT_THREAD_COUNT;
-        static final AtomicInteger threadCount;
+        private static final int DEFAULT_THREAD_COUNT;
+        private static final AtomicInteger threadCount;
         private static Map<Thread,ParallelContext> contexts;
+        private static ExceptionModel exceptionModel;
+
         static {
             DEFAULT_THREAD_COUNT = Runtime.getRuntime().availableProcessors();
             threadCount = new AtomicInteger(DEFAULT_THREAD_COUNT);
             contexts = new HashMap<>();
         }
-
-        private static int threadId;
 
         public static void removeContextByThread(Thread thread) {
             contexts.remove(thread);
@@ -43,19 +66,11 @@ public final class LMP {
         public static ParallelContext getContext() {
             return contexts.get(Thread.currentThread());
         }
-
-        public static int getThreadId() {
-            return threadId;
-        }
-
-
-        public static ParallelContext getContext(SectionsContext sectionsContext) {
-            return contexts.values().stream().filter((p) -> p.getSectionsContext() == sectionsContext).findFirst().get();
-        }
     }
 
     private static class ParallelContext {
 
+        private int nextThreadId = 0;
         private int threadCount;
         private CountDownLatch startupLatch;
         private CountDownLatch barrierLatch;
@@ -63,6 +78,7 @@ public final class LMP {
         private SingleContext singleContext;
         private CriticalContext criticalContext;
         private SectionsContext sectionsContext;
+        private Map<Thread, Integer> threadRegistry;
 
         public ParallelContext(int threadCount) {
             this.threadCount = threadCount;
@@ -71,6 +87,7 @@ public final class LMP {
             singleContext = new SingleContext();
             sectionsContext = new SectionsContext();
             criticalContext = new CriticalContext();
+            threadRegistry = new HashMap<>();
         }
 
         public int getThreadCount() {
@@ -96,6 +113,7 @@ public final class LMP {
 
         public void addThread(Thread thread){
             threads.add(thread);
+            threadRegistry.put(thread,nextThreadId++);
         }
 
         public void cleanup() {
@@ -123,6 +141,10 @@ public final class LMP {
 
         public CriticalContext getCriticalContext() {
             return criticalContext;
+        }
+
+        public Map<Thread,Integer> getThreadRegistry() {
+            return threadRegistry;
         }
     }
 
@@ -373,7 +395,7 @@ public final class LMP {
             throw new IllegalArgumentException("Loop: from > to");
         }
 
-        int tid = Control.getThreadId();
+        int tid = LMP.getThreadId();
         LoopRange range = new LoopRange(from,to,tid,getThreadCount());
         while(range.hasMoreWork()){
             loopRegion.accept(range.getCurrent());

@@ -21,11 +21,42 @@ public class ParallelTest {
     public void init(){
         int defaultThreadCount = LMP.getDefaultThreadCount();
         LMP.setThreadCount(defaultThreadCount);
+        LMP.setExceptionModel(LMP.getExceptionModel().DEFAULT);
     }
 
     @Test(expected = LMP.NullRegion.class)
     public void nullParallelRegion_throwsException(){
         LMP.parallel(null);
+    }
+
+
+    @Test
+    public void shouldSetExceptionModel(){
+        LMP.setExceptionModel(LMP.ExceptionModel.DROP);
+        assertEquals(LMP.ExceptionModel.DROP,LMP.getExceptionModel());
+    }
+
+    @Test
+    public void shoudReturnThreadId(){
+        int threadCount = LMP.getDefaultThreadCount();
+        if(threadCount == 1) {
+            threadCount = 2;
+        }
+        LMP.setThreadCount(threadCount);
+
+        Set<Integer> ids = Collections.synchronizedSet(new HashSet<>());
+        LMP.parallel(() -> {
+            ids.add(LMP.getThreadId());
+        });
+        for(int i = 0; i < threadCount; i++){
+            assertTrue(ids.contains(i));
+        }
+    }
+
+    @Test
+    public void shouldReturnThreadIdZeroWhenOutsideParallel() {
+        final int threadId = LMP.getThreadId();
+        assertEquals(0,threadId);
     }
 
     @Test
