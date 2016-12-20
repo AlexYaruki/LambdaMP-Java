@@ -290,6 +290,7 @@ public final class LMP {
         @Override
         public Thread newThread(Runnable r) {
             Thread thread = new Thread(r);
+            thread.setName("LMP.Thread - " + UUID.randomUUID().toString());
             Control.mapContext(thread,context);
             final int threadId = context.addThread(thread);
             if(LMP.getExceptionModel() == ExceptionModel.HANDLE){
@@ -432,7 +433,9 @@ public final class LMP {
                 Optional<Map.Entry<Thread, Throwable>> first = context.exceptionMap.entrySet().stream().findFirst();
                 Thread thread = first.get().getKey();
                 Throwable throwable = first.get().getValue();
-                throw new ParallelException("Exception thrown by thread \"" + thread.getName() + "\"",first.get().getValue(),thread);
+                throw new ParallelException("Exception thrown by thread \"" + thread.getName() + "\"",throwable,thread);
+            } else {
+                throw new MultiParallelException(context.exceptionMap);
             }
 
         }
@@ -448,11 +451,19 @@ public final class LMP {
         }
         SingleContext singleContext = context.getSingleContext();
         singleContext.lock();
-        if (!singleContext.isDone()) {
-            singleRegion.run();
-            singleContext.markDone();
+        boolean isMarking = false;
+        Throwable exc = null;
+        try {
+            if(!singleContext.isDone()){
+                isMarking = true;
+                singleRegion.run();
+            }
+        } finally {
+            if(isMarking){
+                singleContext.markDone();
+            }
+            singleContext.sync();
         }
-        singleContext.sync();
     }
 
     public static void loop(int from, int to, IntConsumer loopRegion) {
@@ -542,7 +553,11 @@ public final class LMP {
         private Map<Thread,Throwable> causes;
 
         public MultiParallelException(Map<Thread,Throwable> exceptionMap){
-            causes = new HashMap<>(exceptionMap);
+            causes = Collections.unmodifiableMap(exceptionMap);
+        }
+
+        public Map<Thread,Throwable> getCauses(){
+            return causes;
         }
 
     }
