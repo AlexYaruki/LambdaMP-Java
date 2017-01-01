@@ -2,16 +2,25 @@ package lmp;
 
 import org.junit.Test;
 
+import static junit.framework.TestCase.*;
+
 public class SingleExceptionTest extends LMPBaseTest {
 
-    @Test(expected = RuntimeException.class)
+    @Test
     public void shouldPropagateExceptionInPropagateMode() {
         LMP.setExceptionModel(LMP.ExceptionModel.PROPAGATE);
-        LMP.parallel(() -> {
-            LMP.single(() -> {
-                throw new RuntimeException();
+        LMP.ParallelException savedException = null;
+        try {
+            LMP.parallel(() -> {
+                LMP.single(() -> {
+                    throw new RuntimeException();
+                });
             });
-        });
+        } catch (LMP.ParallelException exception) {
+            savedException = exception;
+        }
+        assertNotNull(savedException);
+        assertTrue(savedException.getCause().getClass().equals(RuntimeException.class));
     }
 
     @Test
@@ -30,6 +39,8 @@ public class SingleExceptionTest extends LMPBaseTest {
                 return e.getValue().getClass().equals(LMP.NullRegion.class);
             });
         }
+        assertTrue(checkExceptionCount);
+        assertTrue(checkExceptionType);
     }
 
 

@@ -30,6 +30,19 @@ Ideas for exception model in LambdaMP-Java:
                    }
                }
         ```
-                        
-    3.  HANDLE_IMMEDIATELY - Exception is handled immediately by implementation using provided handler. Thread stops after that.   
+        TODO: How propagation should be handled when exception is thrown in LMP.single, and in thread that execute this region ? For Example:
+        ```java
+                LMP.setThreadCount(4);
+                LMP.parallel(() -> {
+                    LMP.single(() -> {
+                        throw new RuntimeException();
+                    });
+                });
+        ```
+        TODO: Two options are possible:
+        TODO: 1. Other threads receive signal be terminated at the end of single region
+        TODO: 2. Other threads execute as normal and exception is propagated upwards
+        TODO: At this time, option "1" seems to be correct because program could be depending on execution of this region in future
+
+    3.  HANDLER - Exception is handled immediately by implementation using provided handler. Thread stops after that. Other threads execute as planned.
     4.  IDEA: THREAD_DROP - Threads where exception was not thrown, are immediately interrupted.

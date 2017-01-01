@@ -328,6 +328,7 @@ public final class LMP {
                 parallelRegion.run();
             } catch (Throwable e) {
                 if(LMP.getExceptionModel() == ExceptionModel.PROPAGATE) {
+                    //System.out.println(Thread.currentThread());
                     context.saveException(Thread.currentThread(), e);
                 } else {
                     throw e;
@@ -443,7 +444,7 @@ public final class LMP {
 
     public static void single(Runnable singleRegion) {
         if (singleRegion == null) {
-            throw new NullPointerException("Provided single region is empty (Runnable object is null");
+            throw new LMP.NullRegion();
         }
         ParallelContext context = Control.getContext();
         if (context == null) {
@@ -452,7 +453,6 @@ public final class LMP {
         SingleContext singleContext = context.getSingleContext();
         singleContext.lock();
         boolean isMarking = false;
-        Throwable exc = null;
         try {
             if(!singleContext.isDone()){
                 isMarking = true;
