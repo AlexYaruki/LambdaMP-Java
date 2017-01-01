@@ -40,13 +40,6 @@ public final class LMP {
         return exceptionHandler;
     }
 
-    public enum Schedule {
-        STATIC,
-        DYNAMIC,
-        GUIDED,
-        RUNTIME
-    }
-
     public enum ExceptionModel {
         DEFAULT,
         HANDLE,
