@@ -1,12 +1,16 @@
-package lmp;
+package lmp.exceptions;
 
+import lmp.ExceptionHandler;
+import lmp.LMP;
+import lmp.LMPBaseTest;
+import lmp.ThreadContextView;
 import org.junit.Test;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.Assert.*;
 
-public class ParallelExceptionTest extends LMPBaseTest{
+public class ParallelExceptionTest extends LMPBaseTest {
 
     @Test(expected = LMP.NullRegion.class)
     public void nullParallelRegion_throwsException(){

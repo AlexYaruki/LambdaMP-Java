@@ -5,14 +5,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 @Ignore
-public class CriticalTest {
-
-    @After
-    public void cleanup(){
-        LMP.setThreadCount(LMP.getDefaultThreadCount());
-        LMP.setExceptionModel(LMP.ExceptionModel.DEFAULT);
-    }
-
+public class CriticalTest extends LMPBaseTest{
 
     @Test(expected = LMP.OutsideParallel.class)
     public void shouldThrowExceptionWhenOutsideParallel(){

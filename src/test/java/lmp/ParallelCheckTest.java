@@ -7,12 +7,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.Assert.*;
 
-public class ParallelCheckTest {
-
-    @After
-    public void clean(){
-        LMP.setThreadCount(LMP.getDefaultThreadCount());
-    }
+public class ParallelCheckTest extends LMPBaseTest {
 
     @Test
     public void shouldReturnFalseWhenOutsideParallel(){

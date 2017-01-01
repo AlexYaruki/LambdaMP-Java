@@ -1,17 +1,21 @@
 package lmp;
 
-import lmp.LMP;
 import org.junit.Test;
-import static org.junit.Assert.*;
-
 
 import java.util.concurrent.ConcurrentLinkedDeque;
 
-public class SingleTest {
+import static org.junit.Assert.assertEquals;
+
+public class SingleTest extends LMPBaseTest{
 
     @Test(expected = LMP.OutsideParallel.class)
-    public void shouldThrowNullRegionWhenOutsideParallel() {
+    public void shouldThrowOutsideParallelWhenOutsideParallel() {
         LMP.single(() -> {});
+    }
+
+    @Test(expected = LMP.OutsideParallel.class)
+    public void shouldThrowOutsideParallelWhenNullRegionOutsideParallel(){
+        LMP.single(null);
     }
 
     @Test

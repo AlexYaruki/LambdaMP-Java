@@ -1,5 +1,7 @@
-package lmp;
+package lmp.exceptions;
 
+import lmp.LMP;
+import lmp.LMPBaseTest;
 import org.junit.Test;
 
 import static junit.framework.TestCase.*;

@@ -8,7 +8,7 @@ import java.util.Arrays;
 import static org.junit.Assert.assertTrue;
 
 @Ignore
-public class SectionsTest {
+public class SectionsTest extends LMPBaseTest{
 
     @Test
     public void sectionsAreEvenlyDistributedAmongThreads(){

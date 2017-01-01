@@ -12,7 +12,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 
-public class ParallelTest {
+public class ParallelTest extends LMPBaseTest{
 
     /*
         Thread count is set to default value at the end of each test to simulate unmodified environment
