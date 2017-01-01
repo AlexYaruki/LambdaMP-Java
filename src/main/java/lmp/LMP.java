@@ -466,22 +466,6 @@ public final class LMP {
         }
     }
 
-    public static void loop(int from, int to, IntConsumer loopRegion) {
-        if(loopRegion  == null) {
-            throw new NullPointerException("Loop region is empty (IntConsumer is null)");
-        }
-        if(from > to){
-            throw new IllegalArgumentException("Loop: from > to");
-        }
-
-        int tid = LMP.getThreadId();
-        LoopRange range = new LoopRange(from,to,tid,getThreadCount());
-        while(range.hasMoreWork()){
-            loopRegion.accept(range.getCurrent());
-            range.step();
-        }
-    }
-
     public static void sections(Runnable sectionsRegion){
         if(sectionsRegion == null){
             throw new IllegalArgumentException("Sections region is empty (Runnable is null)");
