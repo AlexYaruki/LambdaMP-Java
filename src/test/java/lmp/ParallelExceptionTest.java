@@ -1,6 +1,5 @@
 package lmp;
 
-import org.junit.After;
 import org.junit.Test;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -22,7 +21,7 @@ public class ParallelExceptionTest extends LMPBaseTest{
 
     @Test
     public void shouldSetExceptionHandler() {
-        ExceptionHandler exceptionHandler = (t,tcv,ex) -> {};
+        ExceptionHandler exceptionHandler = (t, tcv, ex) -> {};
         LMP.setExceptionHandler(exceptionHandler);
         assertEquals(exceptionHandler,LMP.getExceptionHandler());
     }

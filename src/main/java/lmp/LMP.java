@@ -448,7 +448,7 @@ public final class LMP {
         }
         ParallelContext context = Control.getContext();
         if (context == null) {
-            return;
+            throw new LMP.OutsideParallel();
         }
         SingleContext singleContext = context.getSingleContext();
         singleContext.lock();

@@ -1,5 +1,6 @@
 package lmp;
 
+import lmp.LMP;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -7,6 +8,11 @@ import static org.junit.Assert.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
 public class SingleTest {
+
+    @Test(expected = LMP.OutsideParallel.class)
+    public void shouldThrowNullRegionWhenOutsideParallel() {
+        LMP.single(() -> {});
+    }
 
     @Test
     public void oneThreadExecutedSingleRegion() {
