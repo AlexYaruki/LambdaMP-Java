@@ -17,7 +17,7 @@ public class SingleTest extends LMPBaseTest{
     public void shouldThrowOutsideParallelWhenNullRegionOutsideParallel(){
         LMP.single(null);
     }
-
+    
     @Test
     public void oneThreadExecutedSingleRegion() {
         ConcurrentLinkedDeque<Integer> resultsSingle = new ConcurrentLinkedDeque<>();

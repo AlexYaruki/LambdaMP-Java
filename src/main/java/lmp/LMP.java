@@ -436,12 +436,12 @@ public final class LMP {
     }
 
     public static void single(Runnable singleRegion) {
-        if (singleRegion == null) {
-            throw new LMP.NullRegion();
-        }
         ParallelContext context = Control.getContext();
         if (context == null) {
             throw new LMP.OutsideParallel();
+        }
+        if (singleRegion == null) {
+            throw new LMP.NullRegion();
         }
         SingleContext singleContext = context.getSingleContext();
         singleContext.lock();
