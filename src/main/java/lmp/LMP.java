@@ -9,6 +9,14 @@ import java.util.function.IntConsumer;
 
 public final class LMP {
 
+    public interface LoopCondition {
+        boolean checkCondition(int i);
+    }
+
+    public interface LoopStep {
+        int step(int i);
+    }
+
     private static ExceptionHandler exceptionHandler;
 
     private LMP(){
@@ -84,6 +92,7 @@ public final class LMP {
         private Map<Thread, Integer> threadRegistry;
         private Map<Thread,Throwable> exceptionMap;
         private CountDownLatch exceptionFinalizedLatch;
+        private LoopContext loopContext;
 
         public ParallelContext(int threadCount) {
             this.threadCount = threadCount;
@@ -92,6 +101,7 @@ public final class LMP {
             singleContext = new SingleContext();
             sectionsContext = new SectionsContext();
             criticalContext = new CriticalContext();
+            loopContext = new LoopContext();
             threadRegistry = new HashMap<>();
             exceptionMap = new HashMap<>();
         }
@@ -171,6 +181,10 @@ public final class LMP {
 
         public void saveException(Thread thread, Throwable e) {
             exceptionMap.put(thread,e);
+        }
+
+        public LoopContext getLoopContext() {
+            return loopContext;
         }
     }
 
@@ -500,6 +514,27 @@ public final class LMP {
         criticalLock.lock();
         criticalRegion.run();
         criticalLock.unlock();
+    }
+
+    public static void forLoop(int start, LoopCondition condition, LoopStep step, IntConsumer region) {
+        ParallelContext context = Control.getContext();
+        if (context == null) {
+            throw new LMP.OutsideParallel();
+        }
+        if (condition == null) {
+            throw new NullPointerException("Loop condition is null");
+        }
+        if (step == null) {
+            throw new NullPointerException("Loop step is null");
+        }
+        if (region == null) {
+            throw new NullPointerException("Region is null");
+        }
+
+        LoopContext loopContext = context.getLoopContext();
+        loopContext.init(start,condition,step,region);
+        loopContext.run();
+        loopContext.finish();
     }
 
     public static boolean inParallel(){
