@@ -537,6 +537,29 @@ public final class LMP {
         loopContext.finish();
     }
 
+    public static void forLoop(final int start, final int exclusiveStop, IntConsumer region) {
+        ParallelContext context = Control.getContext();
+        if (context == null) {
+            throw new LMP.OutsideParallel();
+        }
+        if (region == null) {
+            throw new NullPointerException("Region is null");
+        }
+        LoopCondition condition;
+        LoopStep step;
+        if(start < exclusiveStop) {
+            condition = i -> i < exclusiveStop;
+            step = i -> i++;
+        } else  {
+            condition = i -> i > exclusiveStop;
+            step = i -> i--;
+        }
+        LoopContext loopContext = context.getLoopContext();
+        loopContext.init(start,condition,step,region);
+        loopContext.run();
+        loopContext.finish();
+    }
+
     public static boolean inParallel(){
         ParallelContext context = Control.getContext();
         return context != null;
