@@ -1,4 +1,6 @@
-Migration - OpenMP to LambdaMP-Java
+# Migration - OpenMP to LambdaMP-Java
+
+### Tips:
 
 1. Regions in OpenMP are represented as structured blocks:
     ```C
@@ -26,3 +28,18 @@ Migration - OpenMP to LambdaMP-Java
     expression or implementation of corresponding interface is pass to each thread. After starting these threads, 
     "main" thread starts waiting for all threads to finish. Alternative is to use "LMP.single()" method which result in 
     similar effect.
+
+### Feature list
+    
+| OpenMP          | LambdaMP-Java                                                                |
+|-----------------|------------------------------------------------------------------------------|
+| omp parallel    | LMP.parallel                                                                 |
+| -> if           | LMP.parallel(boolean isParallel,...)                                         |     
+| -> num_threads  | LMP.parallel(int threadCount,...)                                            |
+| -> default      | Not applicable, lookup Java 8 variable capture and Tips.2 - Variable Capture |
+| -> private      | Not applicable, lookup Java 8 variable capture and Tips.2 - Variable Capture |
+| -> firstprivate | Not applicable, lookup Java 8 variable capture and Tips.2 - Variable Capture |
+| -> shared       | Not applicable, lookup Java 8 variable capture and Tips.2 - Variable Capture |
+| -> copyin       |                                                                              |
+| -> reduction    |                                                                              |
+| -> proc_bind    | Not applicable                                                               |
