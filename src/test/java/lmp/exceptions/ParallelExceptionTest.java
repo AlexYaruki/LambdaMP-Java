@@ -4,13 +4,21 @@ import lmp.ExceptionHandler;
 import lmp.LMP;
 import lmp.LMPBaseTest;
 import lmp.ThreadContextView;
+import org.junit.After;
 import org.junit.Test;
 
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.Assert.*;
 
 public class ParallelExceptionTest extends LMPBaseTest {
+
+    @After
+    public void cleanup() {
+        LMP.setExceptionModel(LMP.ExceptionModel.DEFAULT);
+    }
 
     @Test(expected = LMP.NullRegion.class)
     public void nullParallelRegion_throwsException(){
@@ -52,9 +60,13 @@ public class ParallelExceptionTest extends LMPBaseTest {
         LMP.setExceptionHandler((Thread thread, ThreadContextView threadContextView, Throwable throwable) -> {
             check.set(true);
         });
-        LMP.parallel(() -> {
-            throw new RuntimeException();
-        });
+        try {
+            LMP.parallel(() -> {
+                throw new RuntimeException();
+            });
+        } catch (RuntimeException e) {
+            
+        }
         assertFalse(check.get());
     }
 
@@ -76,26 +88,40 @@ public class ParallelExceptionTest extends LMPBaseTest {
         assertFalse(check.get());
     }
 
-    @Test(expected = LMP.ParallelException.class)
-    public void shouldPropagateExceptionHandlerInPropagateMode() {
+    @Test
+    public void shouldPropagateExceptionInPropagateMode() {
         LMP.setThreadCount(1);
         LMP.setExceptionModel(LMP.ExceptionModel.PROPAGATE);
-        LMP.parallel(() -> {
-            throw new RuntimeException();
-        });
+        LMP.ParallelException exception = null;
+        try {
+            LMP.parallel(() -> {
+                throw new RuntimeException();
+            });
+        } catch (LMP.ParallelException ex) {
+            exception = ex;
+        }
+        assertNotNull(exception);
+        Map<Thread, Throwable> causes = exception.getCauses();
+        assertTrue(causes.size() == 1);
+        Map.Entry<Thread, Throwable> entry = causes.entrySet().stream().findFirst().get();
+        assertTrue(entry.getValue() instanceof RuntimeException);
     }
 
     @Test
     public void whenExceptionThrownSafeThreadsExecuteAsNormal() {
         LMP.setThreadCount(4);
         int[] checks = {-1,-1,-1,-1};
-        LMP.parallel(() -> {
-            if(LMP.getThreadId() == 0) {
-                throw new RuntimeException();
-            } else {
-                checks[LMP.getThreadId()] = LMP.getThreadId();
-            }
-        });
+        try {
+            LMP.parallel(() -> {
+                if (LMP.getThreadId() == 0) {
+                    throw new RuntimeException();
+                } else {
+                    checks[LMP.getThreadId()] = LMP.getThreadId();
+                }
+            });
+        } catch (RuntimeException e) {
+
+        }
         final int[] expected = {-1,1,2,3};
         assertArrayEquals(expected,checks);
     }

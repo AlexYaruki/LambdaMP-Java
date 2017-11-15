@@ -6,8 +6,21 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.IntConsumer;
+import java.util.logging.Logger;
+import java.util.logging.Level;
 
 public final class LMP {
+
+    private final static Logger log;
+
+    public enum ParallelMode {
+        Concurrent,
+        Serial
+    }
+
+    static {
+        log = Logger.getLogger("LMP");
+    }
 
     public interface LoopCondition {
         boolean checkCondition(int i);
@@ -52,6 +65,7 @@ public final class LMP {
         DEFAULT,
         HANDLE,
         PROPAGATE,
+        //TODO: TERMINATE - Exception terminates when unhandled exception is detected
     }
 
     private static class Control {
@@ -180,6 +194,7 @@ public final class LMP {
         }
 
         public void saveException(Thread thread, Throwable e) {
+            System.out.println("Saving exception " + e + " for thread " + thread);
             exceptionMap.put(thread,e);
         }
 
@@ -335,8 +350,9 @@ public final class LMP {
                 parallelRegion.run();
             } catch (Throwable e) {
                 if(LMP.getExceptionModel() == ExceptionModel.PROPAGATE) {
-                    //System.out.println(Thread.currentThread());
                     context.saveException(Thread.currentThread(), e);
+                    System.out.println("Saving exception ");
+
                 } else {
                     throw e;
                 }
@@ -416,10 +432,23 @@ public final class LMP {
     }
 
     public static void parallel(Runnable parallelRegion) {
+        parallel(ParallelMode.Concurrent,parallelRegion);
+    }
+
+
+    public static void parallel(ParallelMode parallelMode, Runnable parallelRegion) {
+        if(parallelMode == null) {
+            throw new NullPointerException("Parallel mode is null");
+        }
         if (parallelRegion == null) {
             throw new LMP.NullRegion();
         }
-        ParallelContext context = new ParallelContext(Control.threadCount.get());
+        ParallelContext context;
+        if(parallelMode.equals(ParallelMode.Concurrent)) {
+            context = new ParallelContext(Control.threadCount.get());
+        } else {
+            context = new ParallelContext(1);
+        }
         ParallelThreadFactory threadFactory = new ParallelThreadFactory(context);
         ExecutorService pool = Executors.newFixedThreadPool(context.getThreadCount(), threadFactory);
         for (int i = 0; i < context.getThreadCount(); i++) {
@@ -437,15 +466,10 @@ public final class LMP {
         }
         context.cleanup();
         if(!context.exceptionMap.isEmpty()){
-            if(context.exceptionMap.size() == 1) {
-                Optional<Map.Entry<Thread, Throwable>> first = context.exceptionMap.entrySet().stream().findFirst();
-                Thread thread = first.get().getKey();
-                Throwable throwable = first.get().getValue();
-                throw new ParallelException("Exception thrown by thread \"" + thread.getName() + "\"",throwable,thread);
-            } else {
-                throw new MultiParallelException(context.exceptionMap);
+            if(log.isLoggable(Level.FINE)) {
+                log.fine("Exception map count: " + context.exceptionMap.size());
             }
-
+            throw new ParallelException("Exception thrown during " + context,Collections.unmodifiableMap(context.exceptionMap));
         }
     }
 
@@ -572,28 +596,15 @@ public final class LMP {
     }
 
     public static class ParallelException extends RuntimeException {
-        private final Thread exceptionThread;
+        private final Map<Thread, Throwable> causes;
 
-        public ParallelException(String message, Throwable cause, Thread exceptionThread) {
-            super(message,cause);
-            this.exceptionThread = exceptionThread;
+        public ParallelException(String message, Map<Thread,Throwable> causes) {
+            super(message);
+            this.causes = causes;
         }
 
-        public Thread getExceptionThread() {
-            return exceptionThread;
-        }
-    }
-
-    public static class MultiParallelException extends RuntimeException {
-        private Map<Thread,Throwable> causes;
-
-        public MultiParallelException(Map<Thread,Throwable> exceptionMap){
-            causes = Collections.unmodifiableMap(exceptionMap);
-        }
-
-        public Map<Thread,Throwable> getCauses(){
+        public Map<Thread, Throwable> getCauses() {
             return causes;
         }
-
     }
 }

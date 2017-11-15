@@ -4,6 +4,9 @@ import lmp.LMP;
 import lmp.LMPBaseTest;
 import org.junit.Test;
 
+import java.util.Map;
+import java.util.Optional;
+
 import static junit.framework.TestCase.*;
 
 public class SingleExceptionTest extends LMPBaseTest {
@@ -22,24 +25,26 @@ public class SingleExceptionTest extends LMPBaseTest {
             savedException = exception;
         }
         assertNotNull(savedException);
-        assertTrue(savedException.getCause().getClass().equals(RuntimeException.class));
+        Map<Thread, Throwable> causes = savedException.getCauses();
+        assertTrue(causes.size() == 1);
+        Map.Entry<Thread, Throwable> entry = causes.entrySet().stream().findFirst().get();
+        assertTrue(entry.getValue() instanceof RuntimeException);
     }
 
+    //TODO: Only one exception should be trowed
     @Test
     public void shouldPropagateNullRegionExceptionInPropagateMode() {
+        LMP.setThreadCount(1);
         LMP.setExceptionModel(LMP.ExceptionModel.PROPAGATE);
-        final int threadCount = LMP.getThreadCount();
         boolean checkExceptionCount = false;
         boolean checkExceptionType = false;
         try {
             LMP.parallel(() -> {
                 LMP.single(null);
             });
-        } catch (LMP.MultiParallelException mpe){
-            checkExceptionCount = mpe.getCauses().size() == threadCount;
-            checkExceptionType = mpe.getCauses().entrySet().stream().allMatch((e) -> {
-                return e.getValue().getClass().equals(LMP.NullRegion.class);
-            });
+        } catch (LMP.ParallelException pe){
+            checkExceptionCount = pe.getCauses().size() == 1;
+            checkExceptionType = pe.getCauses().values().stream().findFirst().get().getClass() == LMP.NullRegion.class;
         }
         assertTrue(checkExceptionCount);
         assertTrue(checkExceptionType);
